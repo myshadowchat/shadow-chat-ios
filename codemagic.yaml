@@ -1,0 +1,44 @@
+# Codemagic — Mac olmadan iOS derleme + App Store'a yükleme.
+# Önce Codemagic UI'da bir "App Store Connect" entegrasyonu ekle (Apple API key)
+# ve adını aşağıdaki integrations.app_store_connect ile aynı yap.
+workflows:
+  ios-release:
+    name: Shadow Chat iOS
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: ShadowAppStoreKey   # ← Codemagic'te eklediğin API key'in ADI
+    environment:
+      vars:
+        BUNDLE_ID: "live.myshadow.app"        # App Store Connect'teki bundle id ile aynı olmalı
+        XCODE_WORKSPACE: "ios/App/App.xcworkspace"
+        XCODE_SCHEME: "App"
+      node: 20
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Bağımlılıkları kur
+        script: npm install
+      - name: iOS platformunu ekle
+        script: |
+          npx cap add ios || true
+          npx cap sync ios
+      - name: İmzalama profillerini hazırla (otomatik, API key ile)
+        script: |
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE --create
+          xcode-project use-profiles
+      - name: CocoaPods
+        script: cd ios/App && pod install
+      - name: IPA derle
+        script: |
+          xcode-project build-ipa \
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true   # önce TestFlight; App Store'a sen elle gönderirsin

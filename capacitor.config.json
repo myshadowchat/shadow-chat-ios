@@ -1,0 +1,12 @@
+{
+  "appId": "live.myshadow.app",
+  "appName": "Shadow Chat",
+  "webDir": "www",
+  "server": {
+    "url": "https://myshadow.live",
+    "cleartext": false
+  },
+  "ios": {
+    "limitsNavigationsToAppBoundDomains": false
+  }
+}
